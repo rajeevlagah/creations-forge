@@ -5,6 +5,11 @@ import {
   getTraitsByCategory
 } from "./data/traits.js";
 
+import { PF2_LANGUAGES } from "./data/languages.js";
+import { validateMonster } from "./validation/warnings.js";
+
+let warningsVisible = false;
+
 const state = {
   monster: new Monster(),
 
@@ -29,137 +34,6 @@ const PF2_SKILLS = [
   "Stealth",
   "Survival",
   "Thievery"
-];
-
-const PF2_LANGUAGES = [
-
-  // Common Languages
-  "Common",
-  "Draconic",
-  "Dwarven",
-  "Elven",
-  "Fey",
-  "Gnomish",
-  "Goblin",
-  "Halfling",
-  "Iblydosi",
-  "Jotun",
-  "Orcish",
-  "Razatlani",
-  "Sakvroth",
-  "Taldane",
-  "Tanuki",
-  "Wayang",
-  "Yaksha",
-  "Ysoki",
-
-  // Uncommon Languages
-  "Adlet",
-  "Aishmayar",
-  "Aklo",
-  "Alghollthu",
-  "Amurrun",
-  "Anadi",
-  "Anugobu",
-  "Arboreal",
-  "Azlanti",
-  "Boggard",
-  "Calda",
-  "Caligni",
-  "Chthonian",
-  "Cyclops",
-  "Daemonic",
-  "Destrachan",
-  "Diabolic",
-  "D'ziriak",
-  "Ekujae",
-  "Empyrean",
-  "Erutaki",
-  "Garundi",
-  "Girtablilu",
-  "Hallit",
-  "Iruxi",
-  "Jistkan",
-  "Jyoti",
-  "Kelish",
-  "Khattibi",
-  "Kholo",
-  "Kibwani",
-  "Kitsune",
-  "Lirgeni",
-  "Minkaian",
-  "Muan",
-  "Mwangi",
-  "Mzunu",
-  "Nagaji",
-  "Necril",
-  "Ninshaburian",
-  "Ocotan",
-  "Old Keleshite",
-  "Osiriani",
-  "Petran",
-  "Protean",
-  "Pyric",
-  "Requian",
-  "Shadowtongue",
-  "Shoanti",
-  "Shoony",
-  "Skald",
-  "Sphinx",
-  "Strix",
-  "Sussuran",
-  "Talican",
-  "Tengu",
-  "Thalassic",
-  "Thassilonian",
-  "Thokol",
-  "Tidespeech",
-  "Tien",
-  "Tripkee",
-  "Utopian",
-  "Varisian",
-  "Varki",
-  "Vudrani",
-  "Xanmba",
-
-  // Rare Languages
-  "Akitonian",
-  "Ancient Osiriani",
-  "Androffan",
-  "Arcadian",
-  "Drooni",
-  "Elder Thing",
-  "Formian",
-  "Goloma",
-  "Grioth",
-  "Hwan",
-  "Ikeshti",
-  "Jistka",
-  "Kashrishi",
-  "Kovintal",
-  "Lashunta",
-  "Mi-Go",
-  "Minatan",
-  "Munavri",
-  "Okaiyan",
-  "Orvian",
-  "Rasu",
-  "Ratajin",
-  "Samsaran",
-  "Sasquatch",
-  "Senzar",
-  "Shae",
-  "Shisk",
-  "Shobhad",
-  "Surki",
-  "Vanara",
-  "Vishkanyan",
-  "Wyrwood",
-  "Yithian",
-
-  // Secret Languages
-  "Wildsong"
-
 ];
 
 function slugify(text) {
@@ -190,7 +64,7 @@ function loadState() {
     const raw = JSON.parse(saved);
     const monster = new Monster();
 
-    // copy fields into a real Monster instance
+    // copies fields into a real Monster instance
     Object.assign(monster, raw);
 
     applyMonsterData(monster);
@@ -335,6 +209,74 @@ function setupSelectors() {
   });
 }
 
+function clearWarningHighlights() {
+
+  document
+    .querySelectorAll(
+      ".warning-extreme, .warning-high, .warning-moderate, .warning-low, .warning-terrible"
+    )
+    .forEach(el => {
+
+      el.classList.remove(
+        "warning-extreme",
+        "warning-high",
+        "warning-moderate",
+        "warning-low",
+        "warning-terrible"
+      );
+
+      el.removeAttribute("title");
+    });
+
+  const panel =
+    document.getElementById("validation-panel");
+
+  if (panel) {
+    panel.innerHTML = "";
+  }
+}
+
+function renderWarnings(warnings) {
+
+  clearWarningHighlights();
+
+  const panel =
+    document.getElementById("validation-panel");
+
+  panel.innerHTML = "";
+
+  warnings.forEach(w => {
+
+    // highlight field
+    const field =
+      document.getElementById(w.field);
+
+    if (field) {
+
+      field.classList.add(
+        `warning-${w.severity}`
+      );
+
+      field.title = w.message;
+    }
+
+    // sidebar entry
+    const row =
+      document.createElement("div");
+
+    row.className =
+      `warning-${w.severity}`;
+
+    row.style.padding = "6px";
+    row.style.marginBottom = "4px";
+
+    row.textContent =
+      w.message;
+
+    panel.appendChild(row);
+  });
+}
+
 function renderSkills() {
   const grid = document.getElementById("skills-grid");
 
@@ -345,10 +287,12 @@ function renderSkills() {
     label.textContent = skill;
 
     const input = document.createElement("input");
-    input.type = "text";
-    input.className = "skill-input";
-    input.dataset.skill = skill;
-    input.value = 0;
+      input.type = "text";
+      input.className = "skill-input";
+      input.dataset.skill = skill;
+      input.id =
+        `skill-${skill.toLowerCase()}`;
+      input.value = 0;
 
     grid.appendChild(label);
     grid.appendChild(input);
@@ -375,7 +319,42 @@ function setupListeners() {
 
   document.getElementById("btn-add-lore")?.addEventListener("click", () => addLoreRow());
 
+  document
+  .getElementById("btn-highlight-warnings")
+  ?.addEventListener("click", () => {
 
+    const button =
+      document.getElementById(
+        "btn-highlight-warnings"
+      );
+
+    // HIDE WARNINGS
+    if (warningsVisible) {
+
+      clearWarningHighlights();
+
+      warningsVisible = false;
+
+      button.textContent =
+        "Highlight Warnings";
+
+      return;
+    }
+
+    // SHOW WARNINGS
+    const monster =
+      collectMonsterData();
+
+    const warnings =
+      validateMonster(monster);
+
+    renderWarnings(warnings);
+
+    warningsVisible = true;
+
+    button.textContent =
+      "Hide Warnings";
+  });
 
   document
   .getElementById("btn-add-spellcasting")
@@ -682,12 +661,19 @@ function addSenseRow() {
 }
 
 function addStrikeRow() {
+
+  const strikeIndex =
+    document.querySelectorAll(".strike-row").length;
+
   const row = document.createElement("div");
+
   row.className = "strike-row";
 
   row.innerHTML = `
     <input class="strike-name" type="text" placeholder="Jaws">
+
     <input class="strike-bonus" type="text" placeholder="+14">
+
     <div class="strike-traits-section">
 
       <select class="strike-trait-select">
@@ -699,13 +685,23 @@ function addStrikeRow() {
       <div class="strike-trait-tags"></div>
 
     </div>
-    <input class="strike-damage" type="text" placeholder="2d8+6 piercing">
-    <button>X</button>
+
+    <input
+      id="strike-damage-${strikeIndex}"
+      class="strike-damage"
+      type="text"
+      placeholder="2d8+6 piercing"
+    >
+
+    <button type="button">X</button>
   `;
 
-  row.querySelector("button").addEventListener("click", () => row.remove());
+  row.querySelector("button")
+    .addEventListener("click", () => row.remove());
 
-  document.getElementById("strike-list").appendChild(row);
+  document
+    .getElementById("strike-list")
+    .appendChild(row);
 
   setupStrikeTraitSelector(row);
 }
@@ -1420,7 +1416,7 @@ function refreshPreview() {
 
   const m = state.monster;
 
-  // Combine skills + lore into one unified list
+  // Combines skills + lore into one unified list
   const allSkills = [
     ...(m.skills || []).map(s => ({
       label: s.name,
@@ -1432,10 +1428,10 @@ function refreshPreview() {
     }))
   ];
 
-  // Sort alphabetically
+  // Sorts alphabetically
   allSkills.sort((a, b) => a.label.localeCompare(b.label));
 
-  // Convert to preview text
+  // Converts to preview text
   const skillsText = allSkills
     .map(s => `${s.label} ${s.bonus >= 0 ? "+" : ""}${s.bonus}`)
     .join(", ");

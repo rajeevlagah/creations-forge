@@ -2,6 +2,8 @@
 // Corrected & Improved buildFoundryActor()
 // ===============================
 
+import { PF2_LANGUAGES } from "../data/languages.js";
+
 export function buildFoundryActor(monster) {
 
   function slugify(text) {
@@ -35,11 +37,9 @@ export function buildFoundryActor(monster) {
   // -------------------------------
   // Languages
   // -------------------------------
-  const CORE_LANGUAGES = new Set([
-    "common","draconic","dwarven","elven","gnomish","goblin",
-    "halfling","jotun","orcish","sylvan","undercommon",
-    "aklo","celestial","infernal","abyssal","shadowtongue"
-  ]);
+  const CORE_LANGUAGES = new Set(
+    PF2_LANGUAGES.map(slugify)
+  );
 
   function buildLanguages(langs = []) {
     const core = [];
@@ -59,27 +59,89 @@ export function buildFoundryActor(monster) {
   // -------------------------------
   // Skills + Lore
   // -------------------------------
-  function buildSkills(skills = [], lore = []) {
+  function buildSkills(skills = []) {
+
     const output = {};
 
     skills.forEach(s => {
-      output[slugify(s.name)] = {
+
+      const key = slugify(s.name);
+
+      output[key] = {
         rank: 0,
         base: parseSignedNumber(s.bonus),
         special: []
       };
     });
 
-    lore.forEach(l => {
-      const key = slugify(`${l.name}-lore`);
-      output[key] = {
-        rank: 0,
-        base: parseSignedNumber(l.bonus),
-        special: []
-      };
-    });
-
     return output;
+  }
+
+  function buildLoreItem(lore) {
+
+    const bonus =
+      parseSignedNumber(lore.bonus);
+
+    return {
+
+      _id: randomID(),
+
+      img: "systems/pf2e/icons/default-icons/lore.svg",
+
+      name: lore.name,
+
+      type: "lore",
+
+      system: {
+
+        description: {
+          value: "",
+          gm: ""
+        },
+
+        rules: [],
+
+        slug: slugify(lore.name),
+
+        traits: {
+          otherTags: []
+        },
+
+        mod: {
+          value: bonus
+        },
+
+        variants: {},
+
+        item: {},
+
+        statistic: {
+          check: {
+            type: "skill-check"
+          },
+
+          dc: {
+            value: bonus + 10
+          }
+        },
+
+        proficient: {
+          value: 1
+        },
+
+        publication: {
+          title: "",
+          authors: "",
+          license: "ORC",
+          remaster: true
+        },
+
+        _migration: {
+          version: 0.959,
+          previous: null
+        }
+      }
+    };
   }
 
   // -------------------------------
@@ -447,10 +509,10 @@ export function buildFoundryActor(monster) {
           custom: ""
         },
         languages: buildLanguages(monster.languages || []),
-        blurb: "mlah",
+        blurb: "",
         publication: {
-          title: "fdf",
-          authors: "fgfg",
+          title: "test",
+          authors: "???",
           license: "ORC",
           remaster: true
         }
@@ -493,8 +555,14 @@ export function buildFoundryActor(monster) {
         allSaves: { value: "" },
 
         speed: {
-          value: speeds.base,
-          otherSpeeds: speeds.other,
+          value: Number(monster.attributes.speed || 25),
+
+          otherSpeeds:
+            (monster.attributes.otherSpeeds || []).map(s => ({
+              type: slugify(s.type),
+              value: Number(s.value || 0)
+            })),
+
           details: ""
         },
 
@@ -518,7 +586,7 @@ export function buildFoundryActor(monster) {
         }
       },
 
-      skills: buildSkills(monster.skills || [], monster.lore || []),
+      skills: buildSkills(monster.skills || []),
 
       resources: {},
       _migration: { version: 0.959, previous: null }
@@ -527,10 +595,11 @@ export function buildFoundryActor(monster) {
     items: [
       ...(monster.strikes || []).map(buildStrikeItem),
 
-      ...(monster.abilitiesList || [])
-        .map(buildAbilityItem),
+      ...(monster.abilitiesList || []).map(buildAbilityItem),
 
-      ...buildSpellcastingItems(monster.spellcasting || [])
+      ...buildSpellcastingItems(monster.spellcasting || []),
+
+      ...(monster.lore || []).map(buildLoreItem)
     ],
 
     effects: [],

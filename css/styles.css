@@ -787,6 +787,34 @@ body.dark-mode .header-title-group h1 {
 }
 
 /* =========================
+   WARNING SEVERITY
+========================= */
+
+.warning-extreme {
+  border: 2px solid #2b6cff !important;
+  background: rgba(43,108,255,0.12);
+}
+
+.warning-high {
+  border: 2px solid #35a853 !important;
+  background: rgba(53,168,83,0.10);
+}
+
+.warning-moderate {
+  border: 2px solid #888 !important;
+}
+
+.warning-low {
+  border: 2px solid #ff9800 !important;
+  background: rgba(255,152,0,0.10);
+}
+
+.warning-terrible {
+  border: 2px solid #d93025 !important;
+  background: rgba(217,48,37,0.12);
+}
+
+/* =========================
    DARK MODE HEADERS
 ========================= */
 
