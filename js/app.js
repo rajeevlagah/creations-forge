@@ -1036,11 +1036,11 @@ function setupAbilityTraitSelector(row) {
 }
 
 function addResistanceRow() {
-  addDefenseRow("resistance-list", "resistance-row");
+  addDefenseRow("resistance-list", "resistance-row", true);
 }
 
 function addWeaknessRow() {
-  addDefenseRow("weakness-list", "weakness-row");
+  addDefenseRow("weakness-list", "weakness-row", false);
 }
 
 function addImmunityRow() {
@@ -1060,17 +1060,45 @@ function addImmunityRow() {
     .appendChild(row);
 }
 
-function addDefenseRow(containerId, className) {
+function addDefenseRow(
+  containerId,
+  className,
+  includeDoubleVs = false
+) {
   const row = document.createElement("div");
 
   row.className = `defense-tag-row ${className}`;
 
   row.innerHTML = `
-    <input class="defense-type" type="text" placeholder="fire">
+    <input
+      class="defense-type"
+      type="text"
+      placeholder="fire"
+    >
 
-    <input class="defense-value" type="text" placeholder="10">
+    <input
+      class="defense-value"
+      type="text"
+      placeholder="10"
+    >
 
-    <input class="defense-note" type="text" placeholder="except magical">
+    <input
+      class="defense-note"
+      type="text"
+      placeholder="Exceptions (comma-separated)"
+    >
+
+    ${
+      includeDoubleVs
+        ? `
+          <input
+            class="defense-double-vs"
+            type="text"
+            placeholder="Double vs. (comma-separated)"
+          >
+        `
+        : ""
+    }
 
     <button>X</button>
   `;
@@ -1195,12 +1223,28 @@ function collectMonsterData() {
       .filter(s => s.groups && s.groups.length);
 
   // Resistances / weaknesses / immunities
-  m.resistances =
+    m.resistances =
     [...document.querySelectorAll(".resistance-row")]
       .map(row => ({
         type: row.querySelector(".defense-type").value.trim(),
-        value: parseSignedNumber(row.querySelector(".defense-value").value),
-        note: row.querySelector(".defense-note").value.trim()
+
+        value: parseSignedNumber(
+          row.querySelector(".defense-value").value
+        ),
+
+        note:
+          row.querySelector(".defense-note")
+            ?.value
+            .split(",")
+            .map(v => v.trim())
+            .filter(Boolean) || [],
+
+        doubleVs:
+          row.querySelector(".defense-double-vs")
+            ?.value
+            .split(",")
+            .map(v => v.trim())
+            .filter(Boolean) || []
       }))
       .filter(r => r.type);
 
@@ -1209,9 +1253,14 @@ function collectMonsterData() {
       .map(row => ({
         type: row.querySelector(".defense-type").value.trim(),
         value: parseSignedNumber(row.querySelector(".defense-value").value),
-        note: row.querySelector(".defense-note").value.trim()
-      }))
-      .filter(w => w.type);
+        note:
+          row.querySelector(".defense-note")
+            ?.value
+            .split(",")
+            .map(v => v.trim())
+            .filter(Boolean) || []
+              }))
+              .filter(w => w.type);
 
   m.immunities =
     [...document.querySelectorAll(".immunity-type")]
@@ -1565,7 +1614,20 @@ function refreshPreview() {
           (m.resistances || []).length
             ? `; <strong>Resistances</strong> ${
                 m.resistances
-                  .map(r => `${r.type} ${r.value}`)
+                  .map(r => {
+
+                    const note =
+                      r.note?.length
+                        ? ` (except ${r.note.join(", ")})`
+                        : "";
+
+                    const doubleVs =
+                      r.doubleVs?.length
+                        ? ` [double vs. ${r.doubleVs.join(", ")}]`
+                        : "";
+
+                    return `${r.type} ${r.value}${note}${doubleVs}`;
+                  })
                   .join(", ")
               }`
             : ""
@@ -1573,7 +1635,13 @@ function refreshPreview() {
           (m.weaknesses || []).length
             ? `; <strong>Weaknesses</strong> ${
                 m.weaknesses
-                  .map(w => `${w.type} ${w.value}`)
+                  .map(w =>
+                    `${w.type} ${w.value}${
+                      w.note?.length
+                        ? ` (except ${w.note.join(", ")})`
+                        : ""
+                    }`
+                  )
                   .join(", ")
               }`
             : ""

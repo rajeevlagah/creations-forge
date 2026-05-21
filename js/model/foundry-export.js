@@ -18,6 +18,14 @@ export function buildFoundryActor(monster) {
     return Number(value.toString().replace(/\+/g, "")) || 0;
   }
 
+  function capitalize(text) {
+
+    if (!text) return "";
+
+    return text.charAt(0).toUpperCase()
+      + text.slice(1);
+  }
+
   function randomID() {
     return crypto.getRandomValues(new Uint8Array(16))
       .reduce((str, byte) => str + byte.toString(16).padStart(2, "0"), "")
@@ -81,8 +89,14 @@ export function buildFoundryActor(monster) {
     return list.map(r => ({
       type: slugify(r.type),
       value: Number(r.value || 0),
-      exceptions: [],
-      doubleVs: []
+
+      exceptions:
+        Array.isArray(r.note)
+          ? r.note.map(slugify)
+          : [],
+
+      doubleVs:
+        (r.doubleVs || []).map(slugify)
     }));
   }
 
@@ -90,8 +104,12 @@ export function buildFoundryActor(monster) {
     return list.map(w => ({
       type: slugify(w.type),
       value: Number(w.value || 0),
-      exceptions: []
-    }));
+
+      exceptions:
+        Array.isArray(w.note)
+          ? w.note.map(slugify)
+          : []
+      }));
   }
 
   function buildImmunities(list = []) {
@@ -231,6 +249,95 @@ export function buildFoundryActor(monster) {
     };
   }
 
+  function buildSpellcastingItems(entries = []) {
+
+    return entries.map(entry => ({
+
+      _id: randomID(),
+
+      name:
+        `${capitalize(entry.tradition)} ${capitalize(entry.type)} Spells`,
+
+      type: "spellcastingEntry",
+
+      system: {
+        tradition: {
+          value: entry.tradition || "arcane"
+        },
+
+        prepared: {
+          value:
+            entry.type === "prepared"
+              ? "prepared"
+              : "spontaneous"
+        },
+
+        category: {
+          value:
+            entry.type || "prepared"
+        },
+
+        spelldc: {
+          dc: Number(entry.dc || 0),
+          value: Number(entry.attack || 0)
+        },
+
+        slots: {},
+
+        showUnpreparedSpells: {
+          value: true
+        }
+      }
+    }));
+  }
+
+  function buildSpellcastingNotes(entries = []) {
+
+    if (!entries.length) {
+      return "";
+    }
+
+    return entries.map(entry => {
+
+      const title =
+        `${capitalize(entry.tradition)} ${capitalize(entry.type)} Spells`;
+
+      const dc =
+        entry.dc
+          ? `DC ${entry.dc}`
+          : "";
+
+      const attack =
+        entry.attack
+          ? `attack ${entry.attack >= 0 ? "+" : ""}${entry.attack}`
+          : "";
+
+      const details =
+        [dc, attack]
+          .filter(Boolean)
+          .join(", ");
+
+      const groups =
+        (entry.groups || [])
+          .map(group =>
+            `<p><strong>${group.label}</strong> ${group.spells}</p>`
+          )
+          .join("");
+
+      return `
+        <h3>${title}</h3>
+
+        ${
+          details
+            ? `<p>${details}</p>`
+            : ""
+        }
+
+        ${groups}
+      `;
+    }).join("<hr>");
+  }
+
   // -------------------------------
   // Build Actor
   // -------------------------------
@@ -331,7 +438,9 @@ export function buildFoundryActor(monster) {
           value: monster.details?.description || "",
           gm: ""
         },
-        publicNotes: monster.details?.publicNotes || "",
+        publicNotes: buildSpellcastingNotes(
+          monster.spellcasting || []
+        ),
         privateNotes: monster.details?.privateNotes || "",
         source: {
           value: monster.details?.source || "",
@@ -417,7 +526,11 @@ export function buildFoundryActor(monster) {
 
     items: [
       ...(monster.strikes || []).map(buildStrikeItem),
-      ...(monster.abilitiesList || []).map(buildAbilityItem)
+
+      ...(monster.abilitiesList || [])
+        .map(buildAbilityItem),
+
+      ...buildSpellcastingItems(monster.spellcasting || [])
     ],
 
     effects: [],

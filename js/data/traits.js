@@ -120,6 +120,7 @@ export const ALL_TRAITS = [
   { label: "Aeon", slug: "aeon", category: "creature" },
   { label: "Aesir", slug: "aesir", category: "creature" },
   { label: "Agathion", slug: "agathion", category: "creature" },
+  { label: "Aiuvarin", slug: "aiuvarin", category: "creature" },
   { label: "Air", slug: "air", category: "creature" },
   { label: "Alchemical", slug: "alchemical", category: "creature" },
   { label: "Amphibious", slug: "amphibious", category: "creature" },
@@ -144,7 +145,6 @@ export const ALL_TRAITS = [
   { label: "Clockwork", slug: "clockwork", category: "creature" },
   { label: "Coatl", slug: "coatl", category: "creature" },
   { label: "Cold", slug: "cold", category: "creature" },
-
   { label: "Daemon", slug: "daemon", category: "creature" },
   { label: "Darvakka", slug: "darvakka", category: "creature" },
   { label: "Demon", slug: "demon", category: "creature" },
@@ -155,10 +155,12 @@ export const ALL_TRAITS = [
   { label: "Div", slug: "div", category: "creature" },
   { label: "Divine", slug: "divine", category: "creature" },
   { label: "Drow", slug: "drow", category: "creature" },
+  { label: "Dromaar", slug: "dromaar", category: "creature" },
   { label: "Duskwalker", slug: "duskwalker", category: "creature" },
-
+  { label: "Dwarf", slug: "dwarf", category: "creature" },
   { label: "Earth", slug: "earth", category: "creature" },
   { label: "Electricity", slug: "electricity", category: "creature" },
+  { label: "Elf", slug: "elf", category: "creature" },
   { label: "Fetchling", slug: "fetchling", category: "creature" },
   { label: "Fire", slug: "fire", category: "creature" },
   { label: "Formian", slug: "formian", category: "creature" },
@@ -167,35 +169,32 @@ export const ALL_TRAITS = [
   { label: "Ghost", slug: "ghost", category: "creature" },
   { label: "Ghoul", slug: "ghoul", category: "creature" },
   { label: "Ghul", slug: "ghul", category: "creature" },
+  { label: "Gnome", slug: "gnome", category: "creature" },
   { label: "Golem", slug: "golem", category: "creature" },
   { label: "Graveknight", slug: "graveknight", category: "creature" },
   { label: "Gremlin", slug: "gremlin", category: "creature" },
   { label: "Grioth", slug: "grioth", category: "creature" },
   { label: "Grippli", slug: "grippli", category: "creature" },
-
   { label: "Hag", slug: "hag", category: "creature" },
+  { label: "Halfling", slug: "halfling", category: "creature" },
   { label: "Hantu", slug: "hantu", category: "creature" },
   { label: "Herald", slug: "herald", category: "creature" },
   { label: "Human", slug: "human", category: "creature"},
   { label: "Hobgoblin", slug: "hobgoblin", category: "creature" },
   { label: "Hryngar", slug: "hryngar", category: "creature" },
-
   { label: "Ikeshti", slug: "ikeshti", category: "creature" },
   { label: "Illusion", slug: "illusion", category: "creature" },
   { label: "Incorporeal", slug: "incorporeal", category: "creature" },
   { label: "Inevitable", slug: "inevitable", category: "creature" },
-
   { label: "Kaiju", slug: "kaiju", category: "creature" },
   { label: "Kami", slug: "kami", category: "creature" },
   { label: "Kholo", slug: "kholo", category: "creature" },
   { label: "Kitsune", slug: "kitsune", category: "creature" },
   { label: "Kobold", slug: "kobold", category: "creature" },
   { label: "Kovintus", slug: "kovintus", category: "creature" },
-
   { label: "Leshy", slug: "leshy", category: "creature" },
   { label: "Lilu", slug: "lilu", category: "creature" },
   { label: "Lizardfolk", slug: "lizardfolk", category: "creature" },
-
   { label: "Merfolk", slug: "merfolk", category: "creature" },
   { label: "Mindless", slug: "mindless", category: "creature" },
   { label: "Morlock", slug: "morlock", category: "creature" },
@@ -203,16 +202,14 @@ export const ALL_TRAITS = [
   { label: "Mummy", slug: "mummy", category: "creature" },
   { label: "Munavri", slug: "munavri", category: "creature" },
   { label: "Mutant", slug: "mutant", category: "creature" },
-
   { label: "Naari", slug: "naari", category: "creature" },
   { label: "Nagaji", slug: "nagaji", category: "creature" },
+  { label: "Nephelim", slug: "nephelim", category: "creature" },
   { label: "Nymph", slug: "nymph", category: "creature" },
-
   { label: "Occult", slug: "occult", category: "creature" },
   { label: "Oni", slug: "oni", category: "creature" },
   { label: "Orc", slug: "orc", category: "creature" },
   { label: "Oread", slug: "oread", category: "creature" },
-
   { label: "Paaridar", slug: "paaridar", category: "creature" },
   { label: "Palinthanos", slug: "palinthanos", category: "creature" },
   { label: "Phantom", slug: "phantom", category: "creature" },
@@ -220,10 +217,8 @@ export const ALL_TRAITS = [
   { label: "Protean", slug: "protean", category: "creature" },
   { label: "Psychopomp", slug: "psychopomp", category: "creature" },
   { label: "Qlippoth", slug: "qlippoth", category: "creature" },
-
   { label: "Rakshasa", slug: "rakshasa", category: "creature" },
   { label: "Ratfolk", slug: "ratfolk", category: "creature" },
-
   { label: "Sahkil", slug: "sahkil", category: "creature" },
   { label: "Samsaran", slug: "samsaran", category: "creature" },
   { label: "Sea Devil", slug: "sea-devil", category: "creature" },
@@ -246,24 +241,19 @@ export const ALL_TRAITS = [
   { label: "Strix", slug: "strix", category: "creature" },
   { label: "Sul", slug: "sul", category: "creature" },
   { label: "Swarm", slug: "swarm", category: "creature" },
-
   { label: "Sylph", slug: "sylph", category: "creature" },
-
   { label: "Tane", slug: "tane", category: "creature" },
   { label: "Tanggal", slug: "tanggal", category: "creature" },
   { label: "Tengu", slug: "tengu", category: "creature" },
   { label: "Titan", slug: "titan", category: "creature" },
   { label: "Troll", slug: "troll", category: "creature" },
   { label: "Troop", slug: "troop", category: "creature" },
-
   { label: "Undine", slug: "undine", category: "creature" },
   { label: "Urdefhan", slug: "urdefhan", category: "creature" },
-
   { label: "Vampire", slug: "vampire", category: "creature" },
   { label: "Vanara", slug: "vanara", category: "creature" },
   { label: "Velstrac", slug: "velstrac", category: "creature" },
   { label: "Vishkanya", slug: "vishkanya", category: "creature" },
-
   { label: "Water", slug: "water", category: "creature" },
   { label: "Wayang", slug: "wayang", category: "creature" },
   { label: "Werecreature", slug: "werecreature", category: "creature" },
@@ -272,9 +262,7 @@ export const ALL_TRAITS = [
   { label: "Wraith", slug: "wraith", category: "creature" },
   { label: "Wraithvine", slug: "wraithvine", category: "creature" },
   { label: "Wyrwood", slug: "wyrwood", category: "creature" },
-
   { label: "Xulgath", slug: "xulgath", category: "creature" },
-
   { label: "Zombie", slug: "zombie", category: "creature" },
 
   // =========================

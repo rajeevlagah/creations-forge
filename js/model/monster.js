@@ -43,7 +43,7 @@ export class Monster {
     // Senses as array of strings: ["darkvision", "tremorsense 60 feet"]
     this.senses = [];
 
-    this.resistances = [];  // [{ type, value, note }]
+    this.resistances = [];  // [{ type, value, note, doubleVs }]
     this.weaknesses = [];   // [{ type, value, note }]
     this.immunities = [];   // ["poison", "death effects"]
 
