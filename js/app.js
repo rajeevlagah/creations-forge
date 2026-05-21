@@ -162,36 +162,75 @@ const PF2_LANGUAGES = [
 
 ];
 
+function slugify(text) {
+  return (text || "")
+    .toString()
+    .toLowerCase()
+    .replace(/'/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 function saveState() {
+
+  const monster =
+    collectMonsterData();
 
   localStorage.setItem(
     "pf2-monster-builder",
-    JSON.stringify(state)
+    JSON.stringify(monster)
   );
 }
 
 function loadState() {
-
-  const saved =
-    localStorage.getItem("pf2-monster-builder");
-
+  const saved = localStorage.getItem("pf2-monster-builder");
   if (!saved) return;
 
   try {
+    const raw = JSON.parse(saved);
+    const monster = new Monster();
 
-    const parsed = JSON.parse(saved);
+    // copy fields into a real Monster instance
+    Object.assign(monster, raw);
 
-    state.selectedTraits =
-      parsed.selectedTraits || [];
-
-    state.selectedLanguages =
-      parsed.selectedLanguages || [];
+    applyMonsterData(monster);
+    state.monster = monster;
 
   } catch (err) {
-
     console.error("Failed to load save data", err);
   }
 }
+
+function applyMonsterData(monster) {
+
+  if (!monster) return;
+
+  Object.entries(monster).forEach(([key, value]) => {
+    const field = document.getElementById(key);
+    if (field && typeof value !== "object") {
+      field.value = value ?? "";
+    }
+  });
+
+  // ✅ Fix skills
+  (monster.skills || []).forEach(skill => {
+    const input = [...document.querySelectorAll(".skill-input")]
+      .find(el => el.dataset.skill === skill.name);
+
+    if (input) {
+      input.value = skill.bonus;
+    }
+  });
+
+  state.selectedTraits = monster.traits || [];
+  renderTraitList();
+
+  state.selectedLanguages = monster.languages || [];
+  renderLanguageList();
+
+  refreshPreview();
+}
+
 
 function parseSignedNumber(value) {
 
@@ -215,12 +254,12 @@ function init() {
 
   document.getElementById("clear-monster").addEventListener("click", clearMonster);
 
-  loadState();
-
   setupSelectors();
   renderSkills();
   setupListeners();
   populateTraitSelector();
+
+  loadState();
 
   renderTraitList();
   renderLanguageList();
@@ -233,77 +272,46 @@ function clearMonster() {
   const confirmed = confirm(
     "Are you sure you want to clear the entire monster?"
   );
-
   if (!confirmed) return;
 
   document
     .querySelectorAll("input, textarea, select")
     .forEach(el => {
-
-      if (
-        el.type === "checkbox" ||
-        el.type === "radio"
-      ) {
-
+      if (el.type === "checkbox" || el.type === "radio") {
         el.checked = false;
-
       } else {
-
         el.value = "";
-
       }
-
     });
 
-  [
-    "ability-list",
-    "strike-list",
-    "spellcasting-list",
-    "interaction-list"
-  ].forEach(id => {
+  ["ability-list", "strike-list", "spellcasting-list", "interaction-list"]
+    .forEach(id => {
+      const container = document.getElementById(id);
+      if (container) container.innerHTML = "";
+    });
 
-    const container =
-      document.getElementById(id);
+  const monsterTraits = document.getElementById("monster-traits-tags");
+  if (monsterTraits) monsterTraits.innerHTML = "";
 
-    if (container) {
-      container.innerHTML = "";
-    }
+  const languages = document.getElementById("languages-tags");
+  if (languages) languages.innerHTML = "";
 
-  });
+  const traitSection = document.getElementById("monster-traits-section");
+  if (traitSection) traitSection.dataset.traits = "[]";
 
-  const monsterTraits =
-    document.getElementById("monster-traits-tags");
+  // ✅ reset state, not a global
+  state.selectedTraits = [];
+  state.selectedLanguages = [];
 
-  if (monsterTraits) {
-    monsterTraits.innerHTML = "";
-  }
+  const languageSelect = document.getElementById("languages-select");
+  if (languageSelect) languageSelect.value = "";
 
-  const languages =
-    document.getElementById("languages-tags");
-
-  if (languages) {
-    languages.innerHTML = "";
-  }
-
-  const traitSection =
-    document.getElementById("monster-traits-section");
-
-  if (traitSection) {
-    traitSection.dataset.traits = "[]";
-  }
-
-  selectedLanguages = [];
-
-  const languageSelect =
-    document.getElementById("language-select");
-
-  if (languageSelect) {
-    languageSelect.value = "";
-  }
-
-  renderLanguageTags();
+  // ✅ correct function name
+  renderLanguageList();
+  renderTraitList();
 
   refreshPreview();
+  saveState();
 }
 
 function setupSelectors() {
@@ -363,6 +371,12 @@ function setupListeners() {
 
   document.getElementById("btn-add-ability")?.addEventListener("click", addAbilityRow);
 
+  document.getElementById("btn-add-speed")?.addEventListener("click", () => addSpeedRow());
+
+  document.getElementById("btn-add-lore")?.addEventListener("click", () => addLoreRow());
+
+
+
   document
   .getElementById("btn-add-spellcasting")
   .addEventListener("click", addSpellcastingEntry);
@@ -392,8 +406,19 @@ function setupListeners() {
 
   document.getElementById("btn-export-json")?.addEventListener("click", exportJSON);
 
-  document.addEventListener("input", refreshPreview);
-  document.addEventListener("change", refreshPreview);
+  document.addEventListener("input", () => {
+
+    refreshPreview();
+    saveState();
+
+  });
+
+  document.addEventListener("change", () => {
+
+    refreshPreview();
+    saveState();
+
+  });
 }
 
 function addTrait(event) {
@@ -685,6 +710,38 @@ function addStrikeRow() {
   setupStrikeTraitSelector(row);
 }
 
+function addLoreRow(name = "", bonus = "") {
+  const row = document.createElement("div");
+  row.className = "simple-row";
+
+  row.innerHTML = `
+    <input class="lore-name" type="text" placeholder="Warfare Lore" value="${name}">
+    <input class="lore-bonus" type="text" placeholder="+10" value="${bonus}">
+    <button class="remove-btn">X</button>
+  `;
+
+  row.querySelector("button").addEventListener("click", () => row.remove());
+
+  document.getElementById("lore-list").appendChild(row);
+}
+
+
+function addSpeedRow(type = "", value = "") {
+  const row = document.createElement("div");
+  row.className = "simple-row";
+
+  row.innerHTML = `
+    <input class="speed-type" type="text" placeholder="fly / swim / burrow / climb" value="${type}">
+    <input class="speed-value" type="text" placeholder="40" value="${value}">
+    <button class="remove-btn">X</button>
+  `;
+
+  row.querySelector("button").addEventListener("click", () => row.remove());
+
+  document.getElementById("other-speeds-list").appendChild(row);
+}
+
+
 function setupStrikeTraitSelector(row) {
 
   const select =
@@ -820,6 +877,14 @@ function addAbilityRow() {
         <option value="reaction">Reaction</option>
         <option value="free">Free Action</option>
       </select>
+
+    <select class="ability-category">
+      <option value="offensive">Offensive</option>
+      <option value="defensive">Defensive</option>
+      <option value="interaction">Interaction</option>
+      <option value="misc">Misc</option>
+    </select>
+
 
       <select class="ability-cost">
         <option value="">—</option>
@@ -1020,16 +1085,18 @@ function addDefenseRow(containerId, className) {
 function collectMonsterData() {
   const m = new Monster();
 
+  // Core identity
   m.name = document.getElementById("mon-name").value;
-  m.level = Number(document.getElementById("mon-level").value);
-  m.size = document.getElementById("mon-size").value;
-  m.rarity = document.getElementById("mon-rarity").value;
+  m.level = Number(document.getElementById("mon-level").value) || 0;
+  m.size = document.getElementById("mon-size").value || "med";
+  m.rarity = document.getElementById("mon-rarity").value || "common";
 
+  // Traits & languages
   m.traits = [...state.selectedTraits];
-
   m.languages = [...state.selectedLanguages];
 
-  m.abilityMods = {
+  // Ability scores
+  m.abilities = {
     str: parseSignedNumber(document.getElementById("mod-str").value),
     dex: parseSignedNumber(document.getElementById("mod-dex").value),
     con: parseSignedNumber(document.getElementById("mod-con").value),
@@ -1038,110 +1105,123 @@ function collectMonsterData() {
     cha: parseSignedNumber(document.getElementById("mod-cha").value),
   };
 
-  m.ac = parseSignedNumber(document.getElementById("mon-ac").value);
-  m.hp = parseSignedNumber(document.getElementById("mon-hp").value);
+  // Defenses & perception
+  m.attributes.ac = parseSignedNumber(document.getElementById("mon-ac").value);
+  m.attributes.hp = parseSignedNumber(document.getElementById("mon-hp").value);
+  m.attributes.perception = parseSignedNumber(document.getElementById("mon-perception").value);
 
-  m.fortSave = parseSignedNumber(document.getElementById("save-fort").value);
-  m.refSave = parseSignedNumber(document.getElementById("save-ref").value);
-  m.willSave = parseSignedNumber(document.getElementById("save-will").value);
+  // Speed (string like "25 feet, fly 40 feet")
+  m.attributes.speed = document.getElementById("speed-base").value || "25";
 
-  m.perception = parseSignedNumber(document.getElementById("mon-perception").value);
+  m.attributes.otherSpeeds = [...document.querySelectorAll(".speed-type")].map((el, i) => {
+    const type = el.value.trim();
+    const value = document.querySelectorAll(".speed-value")[i].value.trim();
 
-  m.speed =
-    document.getElementById("speed-base").value;
+    if (!type || !value) return null;
 
+    return { type, value: Number(value) };
+  }).filter(Boolean);
+
+
+  // Saves
+  m.saves.fortitude = parseSignedNumber(document.getElementById("save-fort").value);
+  m.saves.reflex = parseSignedNumber(document.getElementById("save-ref").value);
+  m.saves.will = parseSignedNumber(document.getElementById("save-will").value);
+
+  // Skills
   m.skills = [...document.querySelectorAll(".skill-input")]
-  .map(input => ({
-    name: input.dataset.skill,
-    bonus: parseSignedNumber(input.value)
-  }))
-  .filter(skill => skill.bonus !== 0);
+    .map(input => ({
+      name: input.dataset.skill,
+      bonus: parseSignedNumber(input.value)
+    }))
+    .filter(skill => skill.bonus !== 0);
 
+  m.lore = [...document.querySelectorAll(".lore-name")].map((el, i) => {
+    const name = el.value.trim();
+    const bonus = parseSignedNumber(document.querySelectorAll(".lore-bonus")[i].value);
+
+    if (!name) return null;
+
+    return { name, bonus };
+  }).filter(Boolean);
+
+
+  // Senses
+  m.senses = [...document.querySelectorAll(".sense-input")]
+    .map(input => input.value.trim())
+    .filter(Boolean);
+
+  // Strikes
   m.strikes = [...document.querySelectorAll(".strike-row")].map(row => ({
-    name: row.querySelector(".strike-name").value,
+    name: row.querySelector(".strike-name").value.trim() || "Strike",
     bonus: parseSignedNumber(row.querySelector(".strike-bonus").value),
-    damage: row.querySelector(".strike-damage").value,
-    traits: JSON.parse(
-      row.dataset.traits || "[]"
-    ),
-  }));
+    damage: row.querySelector(".strike-damage").value.trim(),
+    traits: JSON.parse(row.dataset.traits || "[]"),
+  })).filter(s => s.name || s.damage);
 
-  m.abilities =
+  // Action abilities (offensive/defensive/etc.)
+  m.abilitiesList =
     [...document.querySelectorAll(".ability-card")]
       .map(card => ({
-        name:
-          card.querySelector(".ability-name").value,
-        type:
-          card.querySelector(".ability-type").value,
-        cost:
-          card.querySelector(".ability-cost").value,
-        traits:
-          [...card.querySelectorAll(".ability-trait-tag")]
-            .map(tag => tag.dataset.trait),
-        description:
-          card.querySelector(".ability-description").value
+        name: card.querySelector(".ability-name").value.trim(),
+        type: card.querySelector(".ability-type").value,   // "passive" | "action" | "reaction" | "free"
+        cost: card.querySelector(".ability-cost").value,   // "1" | "2" | "3" | "r" | "f" | ""
+        traits: [...card.querySelectorAll(".ability-trait-tag")].map(tag => tag.dataset.trait),
+        category: card.querySelector(".ability-category")?.value || "offensive",
+        description: card.querySelector(".ability-description").value.trim()
       }))
       .filter(a => a.name);
 
+  // Spellcasting
   m.spellcasting =
     [...document.querySelectorAll(".spellcasting-entry")]
-      .map(entry => ({
-
-        type:
-          entry.querySelector(".spellcasting-type").value,
-
-        tradition:
-          entry.querySelector(".spellcasting-tradition").value,
-
-        dc:
-          entry.querySelector(".spellcasting-dc").value,
-
-        attack:
-          entry.querySelector(".spellcasting-attack").value,
-
-        groups:
+      .map(entry => {
+        const groups =
           [...entry.querySelectorAll(".spell-group")]
             .map(group => ({
-
-              label:
-                group.querySelector(".spell-group-label").value,
-
-              spells:
-                group.querySelector(".spell-group-spells").value
-
+              label: group.querySelector(".spell-group-label").value.trim(),
+              spells: group.querySelector(".spell-group-spells").value.trim()
             }))
-            .filter(g => g.spells)
+            .filter(g => g.label && g.spells);
 
-      }))
-      .filter(s => s.groups?.length);
+        return {
+          type: entry.querySelector(".spellcasting-type").value,          // prepared | spontaneous | innate | focus
+          tradition: entry.querySelector(".spellcasting-tradition").value, // arcane | divine | occult | primal
+          dc: parseSignedNumber(entry.querySelector(".spellcasting-dc").value),
+          attack: parseSignedNumber(entry.querySelector(".spellcasting-attack").value),
+          groups
+        };
+      })
+      .filter(s => s.groups && s.groups.length);
 
+  // Resistances / weaknesses / immunities
   m.resistances =
-  [...document.querySelectorAll(".resistance-row")]
-    .map(row => ({
-      type: row.querySelector(".defense-type").value,
-      value: parseSignedNumber(row.querySelector(".defense-value").value),
-      note: row.querySelector(".defense-note").value
-    }))
-    .filter(r => r.type);
+    [...document.querySelectorAll(".resistance-row")]
+      .map(row => ({
+        type: row.querySelector(".defense-type").value.trim(),
+        value: parseSignedNumber(row.querySelector(".defense-value").value),
+        note: row.querySelector(".defense-note").value.trim()
+      }))
+      .filter(r => r.type);
 
   m.weaknesses =
     [...document.querySelectorAll(".weakness-row")]
       .map(row => ({
-        type: row.querySelector(".defense-type").value,
+        type: row.querySelector(".defense-type").value.trim(),
         value: parseSignedNumber(row.querySelector(".defense-value").value),
-        note: row.querySelector(".defense-note").value
+        note: row.querySelector(".defense-note").value.trim()
       }))
       .filter(w => w.type);
 
   m.immunities =
     [...document.querySelectorAll(".immunity-type")]
-      .map(input => input.value)
+      .map(input => input.value.trim())
       .filter(Boolean);
 
   state.monster = m;
-
   return m;
 }
+
 
 function renderAbilityPreview(ability) {
 
@@ -1291,6 +1371,41 @@ function refreshPreview() {
 
   const m = state.monster;
 
+  // Combine skills + lore into one unified list
+  const allSkills = [
+    ...(m.skills || []).map(s => ({
+      label: s.name,
+      bonus: s.bonus
+    })),
+    ...(m.lore || []).map(l => ({
+      label: `Lore (${l.name})`,
+      bonus: l.bonus
+    }))
+  ];
+
+  // Sort alphabetically
+  allSkills.sort((a, b) => a.label.localeCompare(b.label));
+
+  // Convert to preview text
+  const skillsText = allSkills
+    .map(s => `${s.label} ${s.bonus >= 0 ? "+" : ""}${s.bonus}`)
+    .join(", ");
+
+  function ensureArray(v) {
+    return Array.isArray(v) ? v : [];
+  }
+
+  m.traits = ensureArray(m.traits);
+  m.languages = ensureArray(m.languages);
+  m.senses = ensureArray(m.senses);
+  m.strikes = ensureArray(m.strikes);
+  m.abilitiesList = ensureArray(m.abilitiesList);
+  m.spellcasting = ensureArray(m.spellcasting);
+  m.resistances = ensureArray(m.resistances);
+  m.weaknesses = ensureArray(m.weaknesses);
+  m.immunities = ensureArray(m.immunities);
+
+
   document.getElementById("preview-panel").innerHTML = `
 
     <div class="preview-header">
@@ -1365,7 +1480,7 @@ function refreshPreview() {
 
         <strong>Perception</strong>
 
-        ${m.perception >= 0 ? "+" : ""}${m.perception}
+        ${m.attributes.perception >= 0 ? "+" : ""}${m.attributes.perception}
 
         ${
           m.senses?.length
@@ -1402,58 +1517,52 @@ function refreshPreview() {
 
       <p>
         <strong>Skills</strong>
-        ${
-          (m.skills || [])
-            .map(s =>
-              `${s.name} ${
-                s.bonus >= 0 ? "+" : ""
-              }${s.bonus}`
-            )
-            .join(", ")
-        }
+        ${skillsText || "—"}
       </p>
+
+
 
       <p>
         <strong>Str</strong>
-        ${m.abilityMods.str >= 0 ? "+" : ""}${m.abilityMods.str},
+        ${m.abilities.str >= 0 ? "+" : ""}${m.abilities.str},
 
         <strong>Dex</strong>
-        ${m.abilityMods.dex >= 0 ? "+" : ""}${m.abilityMods.dex},
+        ${m.abilities.dex >= 0 ? "+" : ""}${m.abilities.dex},
 
         <strong>Con</strong>
-        ${m.abilityMods.con >= 0 ? "+" : ""}${m.abilityMods.con},
+        ${m.abilities.con >= 0 ? "+" : ""}${m.abilities.con},
 
         <strong>Int</strong>
-        ${m.abilityMods.int >= 0 ? "+" : ""}${m.abilityMods.int},
+        ${m.abilities.int >= 0 ? "+" : ""}${m.abilities.int},
 
         <strong>Wis</strong>
-        ${m.abilityMods.wis >= 0 ? "+" : ""}${m.abilityMods.wis},
+        ${m.abilities.wis >= 0 ? "+" : ""}${m.abilities.wis},
 
         <strong>Cha</strong>
-        ${m.abilityMods.cha >= 0 ? "+" : ""}${m.abilityMods.cha}
+        ${m.abilities.cha >= 0 ? "+" : ""}${m.abilities.cha}
       </p>
 
       <hr>
 
       <p>
-        <strong>AC</strong> ${m.ac};
+        <strong>AC</strong> ${m.attributes.ac};
         <strong>Fort</strong>
-        ${m.fortSave >= 0 ? "+" : ""}${m.fortSave},
+        ${m.saves.fortitude >= 0 ? "+" : ""}${m.saves.fortitude},
 
         <strong>Ref</strong>
-        ${m.refSave >= 0 ? "+" : ""}${m.refSave},
+        ${m.saves.reflex >= 0 ? "+" : ""}${m.saves.reflex},
 
         <strong>Will</strong>
-        ${m.willSave >= 0 ? "+" : ""}${m.willSave}
+        ${m.saves.will >= 0 ? "+" : ""}${m.saves.will}
       </p>
 
       <p>
-        <strong>HP</strong> ${m.hp}${
-          m.immunities?.length
+        <strong>HP</strong> ${m.attributes.hp}${
+          (m.immunities || []).length
             ? `; <strong>Immunities</strong> ${m.immunities.join(", ")}`
             : ""
         }${
-          m.resistances?.length
+          (m.resistances || []).length
             ? `; <strong>Resistances</strong> ${
                 m.resistances
                   .map(r => `${r.type} ${r.value}`)
@@ -1461,7 +1570,7 @@ function refreshPreview() {
               }`
             : ""
         }${
-          m.weaknesses?.length
+          (m.weaknesses || []).length
             ? `; <strong>Weaknesses</strong> ${
                 m.weaknesses
                   .map(w => `${w.type} ${w.value}`)
@@ -1471,12 +1580,12 @@ function refreshPreview() {
         }
       </p>
 
-      ${(m.abilities || [])
+      ${(m.abilitiesList || [])
         .filter(a => a.type === "passive")
         .map(renderAbilityPreview)
         .join("")}
 
-      ${(m.abilities || [])
+      ${(m.abilitiesList || [])
         .filter(a => a.type === "reaction")
         .map(renderAbilityPreview)
         .join("")}
@@ -1485,7 +1594,7 @@ function refreshPreview() {
 
       <p>
         <strong>Speed</strong>
-        ${m.speed}
+        ${m.attributes.speed}
       </p>
 
       <div class="preview-section">
@@ -1493,8 +1602,7 @@ function refreshPreview() {
         ${(m.strikes || [])
           .map(s => {
 
-            const bonus =
-              parseSignedNumber(s.bonus);
+            const bonus = parseSignedNumber(s.bonus);
 
             const sortedTraits =
               (s.traits || [])
@@ -1509,9 +1617,7 @@ function refreshPreview() {
 
                 <strong>${s.name}</strong>
 
-                ${
-                  bonus >= 0 ? "+" : ""
-                }${bonus}
+                ${bonus >= 0 ? "+" : ""}${bonus}
 
                 ${
                   sortedTraits.length
@@ -1537,7 +1643,7 @@ function refreshPreview() {
 
       <div class="preview-section">
 
-        ${(m.abilities || [])
+        ${(m.abilitiesList || [])
           .filter(a =>
             a.type === "action" ||
             a.type === "free"
@@ -1618,10 +1724,8 @@ function exportJSON() {
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
-
   a.href = url;
   a.download = `${monster.name || "creature"}.json`;
-
   a.click();
 
   URL.revokeObjectURL(url);

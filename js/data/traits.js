@@ -176,6 +176,7 @@ export const ALL_TRAITS = [
   { label: "Hag", slug: "hag", category: "creature" },
   { label: "Hantu", slug: "hantu", category: "creature" },
   { label: "Herald", slug: "herald", category: "creature" },
+  { label: "Human", slug: "human", category: "creature"},
   { label: "Hobgoblin", slug: "hobgoblin", category: "creature" },
   { label: "Hryngar", slug: "hryngar", category: "creature" },
 
@@ -368,7 +369,9 @@ export const ALL_TRAITS = [
   { label: "Sweep", slug: "sweep", category: "weapon" },
   { label: "Thrown", slug: "thrown", category: "weapon" },
   { label: "Trip", slug: "trip", category: "weapon" },
-  { label: "Versatile", slug: "versatile", category: "weapon" },
+  { label: "Versatile B", slug: "versatile-b", category: "weapon" },
+  { label: "Versatile P", slug: "versatile-p", category: "weapon" },
+  { label: "Versatile S", slug: "versatile-s", category: "weapon" },
 
   // =========================
   // SENSES
