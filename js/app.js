@@ -91,7 +91,7 @@ async function importMonsterFile(event) {
 
     let monster;
 
-    // IMPORTING YOUR APP JSON
+    // IMPORTING APP JSON
     if (!raw.system) {
 
       monster = new Monster();
@@ -480,14 +480,12 @@ function clearMonster() {
   const traitSection = document.getElementById("monster-traits-section");
   if (traitSection) traitSection.dataset.traits = "[]";
 
-  // ✅ reset state, not a global
   state.selectedTraits = [];
   state.selectedLanguages = [];
 
   const languageSelect = document.getElementById("languages-select");
   if (languageSelect) languageSelect.value = "";
 
-  // ✅ correct function name
   renderLanguageList();
   renderTraitList();
 

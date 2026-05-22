@@ -1,7 +1,3 @@
-// ===============================
-// Corrected & Improved buildFoundryActor()
-// ===============================
-
 import { PF2_LANGUAGES } from "../data/languages.js";
 
 export function buildFoundryActor(monster) {

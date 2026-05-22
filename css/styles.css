@@ -825,18 +825,15 @@ body.dark-mode .header-title-group h1 {
   color: #ffb3b3;
 }
 
-/* Labels */
 .dark-mode label {
   color: #f0dede;
 }
 
-/* Existing PF2e accent color preserved */
 .dark-mode .section-block h3 {
   color: #ff9d9d;
   border-bottom-color: #555;
 }
 
-/* Preview headers */
 .dark-mode .preview-title-row {
   color: #ffb3b3;
 }
@@ -845,14 +842,12 @@ body.dark-mode .header-title-group h1 {
   color: #ffb3b3;
 }
 
-/* Keep trait/tag identity */
 .dark-mode .trait,
 .dark-mode .tag-item {
   color: #fff;
   border-color: #d4b15a;
 }
 
-/* Slightly brighter buttons */
 body.dark-mode button {
   background: #6f2525;
 }
