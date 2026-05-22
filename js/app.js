@@ -75,32 +75,339 @@ function loadState() {
   }
 }
 
+async function importMonsterFile(event) {
+
+  const file = event.target.files[0];
+
+  if (!file) return;
+
+  try {
+
+    const text = await file.text();
+
+    const raw = JSON.parse(text);
+
+    console.log(raw);
+
+    let monster;
+
+    // IMPORTING YOUR APP JSON
+    if (!raw.system) {
+
+      monster = new Monster();
+
+      Object.assign(monster, raw);
+
+    }
+
+    // IMPORTING FOUNDRY PF2E EXPORT
+    else {
+
+      monster = convertFoundryMonster(raw);
+
+    }
+
+    applyMonsterData(monster);
+
+    document.querySelector(".landing-screen")?.classList.add("hidden");
+
+    document.getElementById("editor-screen")?.classList.remove("hidden");
+
+    state.monster = monster;
+
+    refreshPreview();
+
+    saveState();
+
+    alert("Monster imported successfully!");
+
+  } catch (err) {
+
+    console.error(err);
+
+    alert("Invalid or unsupported monster JSON.");
+  }
+
+  event.target.value = "";
+}
+
+function normalizeLanguage(lang) {
+
+  return lang
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function convertFoundryMonster(raw) {
+
+  const monster = new Monster();
+
+  monster.name = raw.name || "";
+
+  monster.level =
+    raw.system?.details?.level?.value || 0;
+
+  monster.size =
+    raw.system?.traits?.size?.value || "med";
+
+  monster.traits =
+    raw.system?.traits?.value || [];
+
+  const importedLanguages =
+  raw.system?.details?.languages?.value || [];
+
+  monster.languages =
+    importedLanguages
+      .map(normalizeLanguage)
+      .filter(lang =>
+        PF2_LANGUAGES.includes(lang)
+      );
+
+  monster.attributes.ac =
+    raw.system?.attributes?.ac?.value || 0;
+
+  monster.attributes.hp =
+    raw.system?.attributes?.hp?.max || 0;
+
+  monster.attributes.speed =
+    raw.system?.attributes?.speed?.value || 25;
+
+  monster.saves.fortitude =
+    raw.system?.saves?.fortitude?.value || 0;
+
+  monster.saves.reflex =
+    raw.system?.saves?.reflex?.value || 0;
+
+  monster.saves.will =
+    raw.system?.saves?.will?.value || 0;
+
+  monster.abilities.str =
+    raw.system?.abilities?.str?.mod || 0;
+
+  monster.abilities.dex =
+    raw.system?.abilities?.dex?.mod || 0;
+
+  monster.abilities.con =
+    raw.system?.abilities?.con?.mod || 0;
+
+  monster.abilities.int =
+    raw.system?.abilities?.int?.mod || 0;
+
+  monster.abilities.wis =
+    raw.system?.abilities?.wis?.mod || 0;
+
+  monster.abilities.cha =
+    raw.system?.abilities?.cha?.mod || 0;
+
+  monster.attributes.perception =
+    raw.system?.perception?.mod || 0;
+
+  monster.skills =
+    Object.entries(raw.system?.skills || {})
+      .map(([name, value]) => ({
+        skill: name,
+        bonus: value.base ?? 0
+      }));
+
+  monster.resistances =
+    (raw.system?.attributes?.resistances || [])
+      .map(r => ({
+        type: r.type || "",
+        value: r.value || 0
+      }));
+
+  monster.weaknesses =
+    (raw.system?.attributes?.weaknesses || [])
+      .map(w => ({
+        type: w.type || "",
+        value: w.value || 0
+      }));
+
+  monster.immunities =
+    (raw.system?.attributes?.immunities || [])
+      .map(i => i.type || "");
+
+  monster.abilitiesList =
+    (raw.items || [])
+      .filter(item =>
+        item.type === "action"
+      )
+      .map(item => ({
+        name: item.name || "",
+        description:
+          item.system?.description?.value || "",
+        actions:
+          item.system?.actions?.value || 0
+      }));
+
+  return monster;
+}
+
+function validateImportedMonster(data) {
+
+  if (!data || typeof data !== "object") {
+    throw new Error("Invalid JSON structure");
+  }
+
+  if (!data.name) {
+    throw new Error("Monster name missing");
+  }
+
+  if (!Array.isArray(data.traits)) {
+    data.traits = [];
+  }
+
+  if (!Array.isArray(data.languages)) {
+    data.languages = [];
+  }
+
+  if (!Array.isArray(data.skills)) {
+    data.skills = [];
+  }
+
+  if (!Array.isArray(data.strikes)) {
+    data.strikes = [];
+  }
+
+  if (!Array.isArray(data.abilitiesList)) {
+    data.abilitiesList = [];
+  }
+
+  if (!Array.isArray(data.spellcasting)) {
+    data.spellcasting = [];
+  }
+}
+
+function setFieldValue(id, value) {
+
+  const field =
+    document.getElementById(id);
+
+  if (!field) {
+    console.warn(`Missing field: ${id}`);
+    return;
+  }
+
+  field.value = value ?? "";
+}
+
 function applyMonsterData(monster) {
 
   if (!monster) return;
 
-  Object.entries(monster).forEach(([key, value]) => {
-    const field = document.getElementById(key);
-    if (field && typeof value !== "object") {
-      field.value = value ?? "";
-    }
-  });
+  setFieldValue("mon-name", monster.name);
+  setFieldValue("mon-level", monster.level);
+  setFieldValue("mon-rarity", monster.rarity);
+  setFieldValue("mon-size", monster.size);
 
-  // ✅ Fix skills
+  setFieldValue("mod-str", monster.abilities?.str);
+  setFieldValue("mod-dex", monster.abilities?.dex);
+  setFieldValue("mod-con", monster.abilities?.con);
+  setFieldValue("mod-int", monster.abilities?.int);
+  setFieldValue("mod-wis", monster.abilities?.wis);
+  setFieldValue("mod-cha", monster.abilities?.cha);
+
+  setFieldValue("mon-ac", monster.attributes?.ac);
+  setFieldValue("mon-hp", monster.attributes?.hp);
+  setFieldValue("speed-base", monster.attributes?.speed);
+  setFieldValue("mon-perception", monster.attributes?.perception);
+
+  setFieldValue("save-fort", monster.saves?.fortitude);
+  setFieldValue("save-ref", monster.saves?.reflex);
+  setFieldValue("save-will", monster.saves?.will);
+
+  // SKILLS
   (monster.skills || []).forEach(skill => {
-    const input = [...document.querySelectorAll(".skill-input")]
-      .find(el => el.dataset.skill === skill.name);
+
+    const input =
+      [...document.querySelectorAll(".skill-input")]
+        .find(el =>
+          el.dataset.skill.toLowerCase()
+            === skill.skill.toLowerCase()
+        );
 
     if (input) {
       input.value = skill.bonus;
     }
   });
 
-  state.selectedTraits = monster.traits || [];
+  // TRAITS
+  state.selectedTraits =
+    monster.traits || [];
+
   renderTraitList();
 
-  state.selectedLanguages = monster.languages || [];
+  // LANGUAGES
+  state.selectedLanguages =
+    monster.languages || [];
+
   renderLanguageList();
+
+  // SENSES
+  (monster.senses || []).forEach(sense => {
+
+    addSenseRow();
+
+    const rows =
+      document.querySelectorAll(
+        "#sense-list .simple-row"
+      );
+
+    const last =
+      rows[rows.length - 1];
+
+    last.querySelector(".sense-input").value =
+      sense;
+  });
+
+  // STRIKES
+  (monster.strikes || []).forEach(strike => {
+
+    addStrikeRow();
+
+    const rows =
+      document.querySelectorAll(".strike-row");
+
+    const row =
+      rows[rows.length - 1];
+
+    row.querySelector(".strike-name").value =
+      strike.name || "";
+
+    row.querySelector(".strike-bonus").value =
+      strike.bonus || "";
+
+    row.querySelector(".strike-damage").value =
+      strike.damage || "";
+  });
+
+  (monster.resistances || []).forEach(r => {
+    addResistanceRow(r.type, r.value);
+  });
+
+  (monster.weaknesses || []).forEach(w => {
+    addWeaknessRow(w.type, w.value);
+  });
+
+  (monster.immunities || []).forEach(i => {
+    addImmunityRow(i);
+  });
+
+  (monster.abilitiesList || []).forEach(a => {
+    addAbilityRow();
+    const rows =
+      document.querySelectorAll(".ability-row");
+    const row =
+      rows[rows.length - 1];
+    row.querySelector(".ability-name").value =
+      a.name || "";
+    row.querySelector(".ability-actions").value =
+      a.actions || 0;
+    row.querySelector(".ability-description").value =
+      a.description || "";
+  });
 
   refreshPreview();
 }
@@ -306,6 +613,18 @@ function setupListeners() {
 
     refreshPreview();
   });
+
+  document.getElementById("btn-import-monster")?.addEventListener("click", () => {
+    document.getElementById("import-file").click();
+
+    refreshPreview();
+
+
+    document.querySelector(".landing-screen").classList.add("hidden");
+    document.getElementById("editor-screen").classList.remove("hidden");
+  });
+
+  document.getElementById("import-file")?.addEventListener("change", importMonsterFile);
 
   document.getElementById("traits-select")?.addEventListener("change", addTrait);
 
@@ -1658,7 +1977,7 @@ function refreshPreview() {
 
       <p>
         <strong>Speed</strong>
-        ${m.attributes.speed}
+        ${m.attributes.speed} feet
       </p>
 
       <div class="preview-section">
